@@ -166,6 +166,28 @@ class AnalysisService(ServiceBase):
             return dict(s.execute(select(Artifact.category, func.count(Artifact.id))
                                   .where(Artifact.case_id == case_id).group_by(Artifact.category)).all())
 
+    def conversations(self, actor, case_id: int) -> list[tuple[str, int, object]]:
+        """(conversation_id, message count, last timestamp), most recent first."""
+        self.authorize(actor, Perm.VIEW_ARTIFACTS)
+        with self.db.session() as s:
+            self.case_for(s, actor, case_id)
+            return [tuple(r) for r in s.execute(
+                select(Artifact.conversation_id, func.count(Artifact.id), func.max(Artifact.timestamp_utc))
+                .where(Artifact.case_id == case_id, Artifact.category == "message", Artifact.conversation_id.is_not(None))
+                .group_by(Artifact.conversation_id).order_by(func.max(Artifact.timestamp_utc).desc())).all()]
+
+    def geolocated(self, actor, case_id: int, include_estimated: bool = True, limit: int = 20000) -> list[Artifact]:
+        self.authorize(actor, Perm.VIEW_ARTIFACTS)
+        with self.db.session() as s:
+            self.case_for(s, actor, case_id)
+            q = select(Artifact).where(Artifact.case_id == case_id, Artifact.latitude.is_not(None),
+                                       Artifact.longitude.is_not(None))
+            if not include_estimated:
+                q = q.where(Artifact.location_kind != "estimated")
+            rows = list(s.scalars(q.order_by(Artifact.timestamp_utc).limit(limit)))
+            self.ctx.audit.log("artifact.view_locations", actor, case_id=case_id, details={"count": len(rows)}, session=s)
+            return rows
+
     def artifact(self, actor, artifact_id: int) -> Artifact:
         self.authorize(actor, Perm.VIEW_ARTIFACTS)
         with self.db.session() as s:

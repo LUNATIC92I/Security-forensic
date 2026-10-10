@@ -88,6 +88,7 @@ class SearchHit:
     parser: str
     sha256: str | None
     evidence_file_id: int | None = None
+    direction: str | None = None
 
 
 @dataclass
@@ -167,7 +168,7 @@ class SearchService(ServiceBase):
                 rows = list(s.scalars(base.order_by(*order).offset((q.page - 1) * q.page_size).limit(q.page_size)))
             hits = [SearchHit(a.id, a.category, a.subtype, a.timestamp_utc, a.summary, evs.get(a.evidence_id, "?"),
                               a.source_path, a.source_table, a.source_rowid, f"{a.parser_name} {a.parser_version}",
-                              a.sha256, a.evidence_file_id) for a in rows]
+                              a.sha256, a.evidence_file_id, a.direction) for a in rows]
             file_hits = []
             if q.sha256 or (q.text and len(q.text) >= 3 and q.page == 1):
                 fq = select(EvidenceFile).where(EvidenceFile.evidence_id.in_(list(evs)))
