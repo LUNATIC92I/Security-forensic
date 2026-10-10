@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+build/
+dist/
+.venv/
+venv/
+*.tmpdir/
+# runtime data must never be committed
+.lunatic_forensics/
+lunatic_home/

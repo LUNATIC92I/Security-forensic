@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lunatic-mobile-forensics"
+version = "0.1.0"
+description = "LUNATIC MOBILE FORENSICS - modular, local-first mobile forensics platform for authorised investigations"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary - internal laboratory use" }
+authors = [{ name = "LUNATIC Forensics Team" }]
+dependencies = [
+    "PySide6>=6.6",
+    "SQLAlchemy>=2.0",
+    "pydantic>=2.5",
+    "cryptography>=42",
+    "argon2-cffi>=23.1",
+    "Pillow>=10.2",
+    "reportlab>=4.0",
+    "tzdata>=2024.1",
+]
+
+[project.optional-dependencies]
+api = ["fastapi>=0.110", "uvicorn>=0.27"]
+postgres = ["psycopg[binary]>=3.1"]
+dev = ["pytest>=8", "pytest-cov>=5", "httpx>=0.27", "fastapi>=0.110"]
+build = ["pyinstaller>=6.3"]
+
+[project.scripts]
+lunatic-forensics = "lunatic_forensics.cli:main"
+
+[project.gui-scripts]
+lunatic-forensics-gui = "lunatic_forensics.gui.app:main"
+
+[tool.setuptools.packages.find]
+include = ["lunatic_forensics*"]
+
+[tool.setuptools.package-data]
+lunatic_forensics = ["gui/*.qss"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = ["gui: tests requiring a Qt platform (run offscreen)"]
+
+[tool.coverage.run]
+source = ["lunatic_forensics"]
+omit = ["lunatic_forensics/gui/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
