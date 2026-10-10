@@ -13,6 +13,7 @@
 | Isolation | originals read-only in the vault; extracted content is never executed; subprocesses (adb, libimobiledevice) are run with argument lists, no shell, validated serials and paths |
 | Audit | append-only hash chain (`audit_log.entry_hash = SHA256(prev_hash + canonical entry)`); security events committed even when the action fails (`core.errors.persist`) |
 | Errors | user-facing messages never include evidence content or secrets; tracebacks go to the technical log only |
+| Encrypted adb backups | AOSP format: PBKDF2-HMAC-SHA1(password, user salt, rounds) unlocks the master key blob, verified by the master-key checksum (Java signed-byte/UTF-8 mangling for version >= 2), streamed AES-256-CBC + zlib + safe TAR extraction; header values bounded (rounds <= 1,000,000). Cross-validated against the independent `android-backup` implementation |
 | Backups | `.lmfbak`: tar.gz stream encrypted with AES-256-GCM in 4 MiB frames, AAD binds frame index and final flag (reordering/truncation detected), scrypt key from passphrase; restore only into an empty directory |
 | Network | no outbound connection; optional API refuses non-loopback binding unless `LUNATIC_API_ALLOW_REMOTE=1` |
 
@@ -71,6 +72,6 @@ Run `python -m lunatic_forensics` then see `AnalysisService.analyzers_catalog()`
 
 ## Testing
 
-`python -m pytest` (139 tests, ~40 s) - `python -m pytest --cov` for coverage (≈91 % excluding GUI).
+`python -m pytest` (142 tests, ~40 s) - `python -m pytest --cov` for coverage (≈91 % excluding GUI).
 GUI tests run offscreen (`QT_QPA_PLATFORM=offscreen`) and are skipped automatically if Qt cannot load.
 `tests/test_end_to_end.py` is the non-regression snapshot of parser outputs on the synthetic scenario.

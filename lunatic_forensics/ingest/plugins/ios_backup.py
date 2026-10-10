@@ -54,7 +54,7 @@ class IosBackupPlugin(ImportPlugin):
         return detected == "directory" and (src / "Manifest.db").exists() or \
             detected == "directory" and (src / "Manifest.mbdb").exists()
 
-    def precheck(self, src, detected, limits):
+    def precheck(self, src, detected, limits, password: str | None = None):
         res = PrecheckResult()
         if (src / "Manifest.mbdb").exists() and not (src / "Manifest.db").exists():
             res.blocking.append("Legacy iOS backup format (Manifest.mbdb, iOS < 10) is not supported.")
@@ -75,7 +75,7 @@ class IosBackupPlugin(ImportPlugin):
             res.blocking.append(f"Manifest.db unreadable: {exc}")
         return res
 
-    def extract(self, src, workdir, limits):
+    def extract(self, src, workdir, limits, password: str | None = None):
         info = device_info_from_backup(src)
         if info.get("is_encrypted"):
             raise ImportRejected("Encrypted iOS backups are not supported.")

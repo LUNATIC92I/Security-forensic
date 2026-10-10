@@ -123,3 +123,20 @@ def test_reanalysis_is_idempotent(ctx, users, case_id, tmp_path):
     assert sum(ctx.analysis.category_counts(users["inv"], case_id).values()) == n1
     checks = [c.context for c in ctx.evidence.checks(users["inv"], ev_id)]
     assert checks.count("pre-analysis") == 2 and checks.count("post-analysis") == 2
+
+
+def test_encrypted_backup_import_does_not_store_password(ctx, users, case_id, tmp_path):
+    from sqlalchemy import text
+    src = S.android_backup(tmp_path / "enc.ab", encrypted=True)
+    with pytest.raises(ImportRejected):
+        ctx.evidence.import_evidence(users["inv"], case_id, src)
+    ev_id = ctx.evidence.import_evidence(users["inv"], case_id, src, container_password=S.SYNTH_BACKUP_PASSWORD)
+    ctx.analysis.run(users["inv"], ev_id)
+    assert ctx.analysis.category_counts(users["inv"], case_id)["message"] == 8
+    entry = ctx.audit.entries(users["admin"], action_prefix="evidence.import")[0]
+    assert entry.details["container_password_supplied"] is True
+    with ctx.db.engine.connect() as con:
+        dump = "\n".join(str(r) for t in ("audit_log", "evidence", "devices") for r in con.execute(text(f"SELECT * FROM {t}")))
+    assert S.SYNTH_BACKUP_PASSWORD not in dump
+    log = (ctx.config.logs_dir / "lunatic.log").read_text()
+    assert S.SYNTH_BACKUP_PASSWORD not in log

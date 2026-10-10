@@ -7,13 +7,13 @@ Plateforme de **criminalistique numérique mobile** en Python, locale par défau
 > verrouillage, aucune exploitation, aucune extraction clandestine ni neutralisation de protections.
 > Il ne présente jamais une collecte logique comme une extraction physique.
 
-![tests](https://img.shields.io/badge/tests-139%20passed-2f8cff) ![coverage](https://img.shields.io/badge/coverage-91%25-2f8cff)
+![tests](https://img.shields.io/badge/tests-142%20passed-2f8cff) ![coverage](https://img.shields.io/badge/coverage-91%25-2f8cff)
 
 ## Fonctionnalités principales
 - **Investigations** : identifiants uniques, statuts, responsable, enquêteurs autorisés, autorité légale, périmètre, historique.
 - **Rôles** administrateur / enquêteur / analyste / auditeur, cloisonnement des dossiers, verrouillage de session.
 - **Import sécurisé** : détection du type réel, contrôle de structure, protection traversée / bombes / liens / XML, plugins
-  (ZIP, TAR, dossiers, sauvegarde Android `.ab`, sauvegarde iOS non chiffrée, fichiers isolés).
+  (ZIP, TAR, dossiers, sauvegarde Android `.ab` (y compris chiffrée, avec le mot de passe fourni), sauvegarde iOS non chiffrée, fichiers isolés).
 - **Chaîne de conservation** : SHA-256 avant/après, coffre en lecture seule, copies de travail, journal d'audit chaîné et vérifiable.
 - **Analyse** (32 analyseurs) : contacts, SMS/MMS/iMessage, appels, calendrier, notes, navigateurs, WhatsApp (bases en clair),
   médias (EXIF/GPS, MP4), documents, géolocalisation (enregistrée vs estimée), journaux, inventaire des applications,
@@ -52,7 +52,7 @@ python -m lunatic_forensics --home ./lab --user admin report 1 --format pdf
 
 ## Tests
 ```bash
-python -m pytest                                   # 139 tests, aucune donnée réelle
+python -m pytest                                   # 142 tests, aucune donnée réelle
 python -m pytest --cov=lunatic_forensics --cov-report=html
 ```
 
@@ -84,7 +84,7 @@ packaging/      spécification PyInstaller     examples/  rapport d'exemple
 ```
 
 ## Limites importantes
-Voir [docs/STATUS.md](docs/STATUS.md). En résumé : pas d'extraction physique ni de déchiffrement de sauvegardes ;
+Voir [docs/STATUS.md](docs/STATUS.md). En résumé : pas d'extraction physique ni de déchiffrement des sauvegardes iOS chiffrées ;
 formats propriétaires tiers non pris en charge sans spécification (passer par le format d'échange) ; connecteurs
 ADB/iOS testés en simulation et à valider sur appareils de test ; module de récupération expérimental ; une empreinte
 SHA-256 ne suffit pas à établir l'authenticité ou la recevabilité juridique d'une preuve.

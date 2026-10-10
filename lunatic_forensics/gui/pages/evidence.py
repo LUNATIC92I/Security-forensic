@@ -27,7 +27,8 @@ class InspectPage(QWizardPage):
         w = self.wiz
         w.report = None
         try:
-            w.report = w.p.ctx.evidence.precheck(w.p.session, w.path.text().strip())
+            w.report = w.p.ctx.evidence.precheck(w.p.session, w.path.text().strip(),
+                                                 password=w.password.text() or None)
         except Exception as exc:  # noqa: BLE001 - shown to the user
             self.pre.setPlainText(f"Inspection failed: {exc}")
             self.completeChanged.emit()
@@ -94,6 +95,9 @@ class ImportWizard(QWizard):
         self.device = QComboBox()
         self.notes = QPlainTextEdit()
         self.notes.setMaximumHeight(70)
+        self.password = QLineEdit()
+        self.password.setEchoMode(QLineEdit.Password)
+        self.password.setPlaceholderText("Only for encrypted Android backups - supplied by owner / authority, never stored")
         self.analyze = QCheckBox("Run all analyzers after import")
         self.analyze.setChecked(True)
         f.addRow("Acquisition method", self.method)
@@ -101,6 +105,7 @@ class ImportWizard(QWizard):
         f.addRow("Tool version", self.tool_v)
         f.addRow("Device", self.device)
         f.addRow("Notes", self.notes)
+        f.addRow("Backup password", self.password)
         f.addRow("", self.analyze)
         self.addPage(s1)
         self.s2 = InspectPage(self)
@@ -124,7 +129,8 @@ class ImportWizard(QWizard):
     def params(self):
         return dict(path=self.path.text().strip(), device_id=self.device.currentData(),
                     acquisition_method=self.method.currentText(), tool_name=self.tool.text(),
-                    tool_version=self.tool_v.text(), notes=self.notes.toPlainText()), self.analyze.isChecked()
+                    tool_version=self.tool_v.text(), notes=self.notes.toPlainText(),
+                    container_password=self.password.text() or None), self.analyze.isChecked()
 
 
 class EvidencePage(Page):

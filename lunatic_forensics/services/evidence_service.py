@@ -60,14 +60,16 @@ def force_rmtree(path: Path) -> None:
 
 class EvidenceService(ServiceBase):
     # ----------------------------------------------------------- inspection
-    def precheck(self, actor, path: str | Path) -> PrecheckReport:
+    def precheck(self, actor, path: str | Path, password: str | None = None) -> PrecheckReport:
         self.authorize(actor, Perm.IMPORT_EVIDENCE)
-        return precheck(Path(path), self.ctx.config.limits)
+        return precheck(Path(path), self.ctx.config.limits, password=password)
 
     # --------------------------------------------------------------- import
     def import_evidence(self, actor, case_id: int, path: str | Path, *, device_id: int | None = None,
                         acquisition_method: str = "file import", tool_name: str = "", tool_version: str = "",
-                        notes: str = "", progress=None) -> int:
+                        notes: str = "", progress=None, container_password: str | None = None) -> int:
+        """Import a source. ``container_password`` (encrypted backups) is used in memory for
+        this import only: it is never stored nor logged; the audit records only that one was supplied."""
         self.authorize(actor, Perm.IMPORT_EVIDENCE)
         src = Path(path)
         prog = progress or (lambda stage, pct: None)
@@ -82,7 +84,7 @@ class EvidenceService(ServiceBase):
                     raise ValidationError("Device does not belong to this case.")
 
         prog("Pre-import inspection", 5)
-        report = precheck(src, self.ctx.config.limits)
+        report = precheck(src, self.ctx.config.limits, password=container_password)
         if not report.accepted:
             self.ctx.audit.log("evidence.import_rejected", actor, case_id=case_id, object_type="source",
                                object_id=src.name, details={"blocking": report.blocking, "type": report.detected_type})
@@ -125,7 +127,7 @@ class EvidenceService(ServiceBase):
         prog("Extracting working copy", 50)
         plugin = select_plugin(stored, report.detected_type)
         try:
-            result = plugin.extract(stored, work_dir, self.ctx.config.limits)
+            result = plugin.extract(stored, work_dir, self.ctx.config.limits, password=container_password)
         except ImportRejected as exc:
             self.ctx.audit.log("evidence.import_rejected", actor, case_id=case_id, object_type="source",
                                object_id=src.name, details={"stage": "extraction", "reason": str(exc), "risks": exc.risks})
@@ -178,7 +180,8 @@ class EvidenceService(ServiceBase):
                                         "files": len(files), "acquisition_method": acquisition_method,
                                         "acquisition_tool": f"{tool_name} {tool_version}".strip(),
                                         "processing_tool": f"{__app_name__} {__version__}",
-                                        "plugin": plugin.name, "warnings": len(ev.warnings)}, session=s)
+                                        "plugin": plugin.name, "warnings": len(ev.warnings),
+                                        "container_password_supplied": bool(container_password)}, session=s)
             ev_id = ev.id
         prog("Done", 100)
         return ev_id

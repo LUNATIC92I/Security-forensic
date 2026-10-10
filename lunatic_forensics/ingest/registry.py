@@ -47,7 +47,7 @@ class PrecheckReport:
     structure: dict = field(default_factory=dict)
 
 
-def precheck(src: Path, limits: ImportLimits) -> PrecheckReport:
+def precheck(src: Path, limits: ImportLimits, password: str | None = None) -> PrecheckReport:
     src = Path(src)
     if src.is_symlink():
         return PrecheckReport(str(src), "symlink", 0, None, False, ["Symbolic links are not accepted as sources."])
@@ -71,7 +71,7 @@ def precheck(src: Path, limits: ImportLimits) -> PrecheckReport:
         report.blocking.append("No import plugin accepts this source.")
     else:
         report.plugin = plugin.name
-        pre = plugin.precheck(src, detected, limits)
+        pre = plugin.precheck(src, detected, limits, password=password)
         report.blocking += pre.blocking
         report.warnings += pre.warnings
         report.structure = pre.structure

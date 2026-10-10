@@ -69,10 +69,22 @@ def cmd_case_list(args):
         print(f"{c.id:4d} {c.uid}  {c.status:12s} ev={c.evidence:<3d} art={c.artifacts:<6d} alerts={c.integrity_alerts}  {c.title}")
 
 
+def _container_password(args):
+    """Backup password from an environment variable or an interactive prompt (never argv)."""
+    if getattr(args, "password_env", None):
+        pw = os.environ.get(args.password_env)
+        if not pw:
+            sys.exit(f"environment variable {args.password_env} is empty")
+        return pw
+    if getattr(args, "ask_password", False):
+        return getpass.getpass("Backup password: ")
+    return None
+
+
 def cmd_precheck(args):
     ctx = _ctx(args)
     a = _login(ctx, args)
-    r = ctx.evidence.precheck(a, args.path)
+    r = ctx.evidence.precheck(a, args.path, password=_container_password(args))
     from dataclasses import asdict
     print(json.dumps(asdict(r), indent=2, default=str))
     return 0 if r.accepted else 2
@@ -84,7 +96,8 @@ def cmd_import(args):
     try:
         ev = ctx.evidence.import_evidence(a, args.case, args.path, acquisition_method=args.method,
                                           tool_name=args.tool or "", tool_version=args.tool_version or "",
-                                          notes=args.notes or "", progress=_progress)
+                                          notes=args.notes or "", progress=_progress,
+                                          container_password=_container_password(args))
     except ImportRejected as exc:
         print(f"REJECTED: {exc}", *[f"  - {r}" for r in exc.risks], sep="\n", file=sys.stderr)
         return 2
@@ -232,6 +245,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("precheck", help="inspect a source without importing it")
     s.add_argument("path")
+    s.add_argument("--password-env", help="env variable holding the backup password (encrypted .ab)")
+    s.add_argument("--ask-password", action="store_true", help="prompt for the backup password")
     s.set_defaults(fn=cmd_precheck)
 
     s = sub.add_parser("import", help="import an evidence source into a case")
@@ -242,6 +257,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--tool-version")
     s.add_argument("--notes")
     s.add_argument("--analyze", action="store_true")
+    s.add_argument("--password-env", help="env variable holding the backup password (encrypted .ab)")
+    s.add_argument("--ask-password", action="store_true", help="prompt for the backup password")
     s.set_defaults(fn=cmd_import)
 
     s = sub.add_parser("analyze")

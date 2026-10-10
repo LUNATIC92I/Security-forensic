@@ -27,9 +27,12 @@ The case selector at the top applies to all pages.
 3. confirm. The source is hashed, copied read-only into the vault, verified, extracted to a working copy
    and (optionally) analysed. Progress is shown in the status bar.
 
-Supported: ZIP, TAR(.gz/.bz2/.xz), Android adb backups (unencrypted), iOS backups folders (unencrypted,
-iOS 10+), SQLite databases, media, documents, JSON/CSV/XML exports, logs, raw images (experimental
-carving). Encrypted backups are refused with an explanation: no password guessing is performed.
+Supported: ZIP, TAR(.gz/.bz2/.xz), Android adb backups (unencrypted, or AES-256 encrypted when the
+backup password is supplied in the wizard's *Backup password* field / CLI `--ask-password` or
+`--password-env VAR`), iOS backups folders (unencrypted, iOS 10+), SQLite databases, media, documents,
+JSON/CSV/XML exports, logs, raw images (experimental carving). The password is verified before
+extraction, used in memory only and never stored or logged (the audit records only that one was
+supplied). Encrypted iOS backups are refused with an explanation. No password guessing is performed.
 
 **Verify integrity** re-hashes originals; any mismatch raises an alert on the dashboard and blocks analysis.
 

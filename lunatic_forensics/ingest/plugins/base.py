@@ -38,9 +38,9 @@ class ImportPlugin(ABC):
     def probe(self, src: Path, detected: str) -> bool:
         """Return True if this plugin handles the source."""
 
-    def precheck(self, src: Path, detected: str, limits: ImportLimits) -> PrecheckResult:
+    def precheck(self, src: Path, detected: str, limits: ImportLimits, password: str | None = None) -> PrecheckResult:
         return PrecheckResult()
 
     @abstractmethod
-    def extract(self, src: Path, workdir: Path, limits: ImportLimits) -> ExtractionResult:
+    def extract(self, src: Path, workdir: Path, limits: ImportLimits, password: str | None = None) -> ExtractionResult:
         """Produce working copies of the source content inside ``workdir``."""

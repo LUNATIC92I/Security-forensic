@@ -22,12 +22,17 @@ from .search_service import SearchService
 
 
 def configure_logging(config: AppConfig, level=logging.INFO) -> None:
+    """Attach a rotating file handler for this data directory (replacing one for another directory)."""
     root = logging.getLogger("lunatic")
-    if any(getattr(h, "_lunatic", False) for h in root.handlers):
-        return
     root.setLevel(level)
-    fh = logging.handlers.RotatingFileHandler(config.logs_dir / "lunatic.log", maxBytes=10 * 1024 * 1024,
-                                              backupCount=5, encoding="utf-8")
+    target = str((config.logs_dir / "lunatic.log").resolve())
+    for h in list(root.handlers):
+        if getattr(h, "_lunatic", False):
+            if h.baseFilename == target:
+                return
+            root.removeHandler(h)
+            h.close()
+    fh = logging.handlers.RotatingFileHandler(target, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8")
     fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
     fh._lunatic = True
     root.addHandler(fh)

@@ -24,7 +24,7 @@ class ZipPlugin(ImportPlugin):
             return False
         return True
 
-    def precheck(self, src, detected, limits):
+    def precheck(self, src, detected, limits, password: str | None = None):
         blocking, warnings = zip_risks(src, limits)
         with_count = {}
         try:
@@ -35,7 +35,7 @@ class ZipPlugin(ImportPlugin):
             pass
         return PrecheckResult(blocking, warnings, with_count)
 
-    def extract(self, src, workdir, limits):
+    def extract(self, src, workdir, limits, password: str | None = None):
         stats = safe_extract_zip(src, workdir, limits)
         return ExtractionResult(self.container_type, [ExtractedFile(f, f) for f in stats.files], stats.warnings)
 
@@ -48,10 +48,10 @@ class TarPlugin(ImportPlugin):
     def probe(self, src, detected):
         return not src.is_dir() and detected in ("tar", "gzip", "bzip2", "xz") and is_tar(src)
 
-    def precheck(self, src, detected, limits):
+    def precheck(self, src, detected, limits, password: str | None = None):
         return PrecheckResult(structure={"compression": detected})
 
-    def extract(self, src, workdir, limits):
+    def extract(self, src, workdir, limits, password: str | None = None):
         stats = safe_extract_tar(src, workdir, limits)
         return ExtractionResult(self.container_type, [ExtractedFile(f, f) for f in stats.files], stats.warnings)
 
@@ -64,7 +64,7 @@ class DirectoryPlugin(ImportPlugin):
     def probe(self, src, detected):
         return detected == "directory"
 
-    def precheck(self, src, detected, limits):
+    def precheck(self, src, detected, limits, password: str | None = None):
         res = PrecheckResult()
         n = 0
         total = 0
@@ -82,7 +82,7 @@ class DirectoryPlugin(ImportPlugin):
         res.structure = {"files": n, "bytes": total}
         return res
 
-    def extract(self, src, workdir, limits):
+    def extract(self, src, workdir, limits, password: str | None = None):
         files = []
         for p in iter_regular_files(src):
             rel = p.relative_to(src)
@@ -101,7 +101,7 @@ class SingleFilePlugin(ImportPlugin):
     def probe(self, src, detected):
         return src.is_file()
 
-    def extract(self, src, workdir, limits):
+    def extract(self, src, workdir, limits, password: str | None = None):
         workdir.mkdir(parents=True, exist_ok=True)
         target = workdir / src.name
         shutil.copy2(src, target)

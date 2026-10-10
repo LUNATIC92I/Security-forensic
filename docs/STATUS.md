@@ -10,7 +10,7 @@ Légende : ✅ opérationnel et testé · 🟡 partiel (limites indiquées) · �
 | Authentification | argon2id, politique de mot de passe, verrouillage après échecs, verrouillage de session | `test_auth_cases.py` |
 | Chiffrement au repos | champs sensibles Fernet, clé enveloppée par phrase secrète (scrypt + AES-GCM) | `test_core.py`, `test_auth_cases.py` |
 | Import sécurisé | type réel, taille, structure, traversée, liens, bombes de décompression, XML DTD | `test_ingest_safety.py` |
-| Conteneurs | ZIP, TAR(.gz/.bz2/.xz), dossiers, sauvegarde Android `.ab` non chiffrée, sauvegarde iOS non chiffrée (Manifest.db) | `test_ingest_safety.py`, `test_evidence.py` |
+| Conteneurs | ZIP, TAR(.gz/.bz2/.xz), dossiers, sauvegarde Android `.ab` (non chiffrée **ou chiffrée AES-256 avec le mot de passe fourni**), sauvegarde iOS non chiffrée (Manifest.db) | `test_ingest_safety.py`, `test_evidence.py` |
 | Chaîne de conservation | SHA-256 (+MD5) source/copie, coffre en lecture seule, copies de travail, vérifications import/pré/post-analyse/manuelles, alertes, journal d'audit chaîné | `test_evidence.py`, `test_audit.py` |
 | Contacts, SMS/MMS, appels, calendrier (Android & iOS) | schémas AOSP / iOS documentés, valeurs brutes vs interprétées | `test_analyzers_mobile.py` |
 | Navigateurs | Chromium (historique, téléchargements, favoris, métadonnées cookies), Safari, Firefox | `test_analyzers_files.py` |
@@ -48,7 +48,7 @@ Légende : ✅ opérationnel et testé · 🟡 partiel (limites indiquées) · �
 | Élément | Raison / alternative |
 |---|---|
 | Extraction physique, contournement de verrouillage, exploits, root/jailbreak | exclus par conception. Alternative : importer une acquisition réalisée par un outil validé et autorisé (ZIP/TAR/dossier) |
-| Sauvegardes Android/iOS chiffrées | déchiffrement non implémenté ; pas d'attaque de mot de passe. Alternative : sauvegarde non chiffrée réalisée avec l'autorisation du titulaire |
+| Sauvegardes iOS chiffrées | déchiffrement (keybag) non implémenté ; pas d'attaque de mot de passe. Alternative : sauvegarde non chiffrée réalisée avec l'autorisation du titulaire. Les sauvegardes **Android** chiffrées sont désormais prises en charge avec le mot de passe fourni (vérifié par la somme de contrôle de la clé maître, jamais stocké ; validé contre une implémentation tierce indépendante) |
 | Formats propriétaires d'éditeurs tiers (UFDR, OFB, etc.) | non documentés publiquement ; non annoncés. Alternative : exports CSV/JSON/XML de ces outils via le **format d'échange LUNATIC** (`docs/exchange_format.md`) ou un plugin dédié une fois la spécification disponible |
 | Telegram, Signal, Messenger, Instagram, Snapchat... | bases chiffrées (Signal SQLCipher) ou sérialisation propriétaire (Telegram) : seulement **inventoriées** ; aucune clé n'est extraite, aucun compte distant n'est accédé |
 | Fond de carte | volontairement hors ligne (aucune transmission) ; export GeoJSON/KML vers un SIG validé |
@@ -62,7 +62,7 @@ Linux (GUI) : `libegl1 libgl1 libxkbcommon0 libfontconfig1`.
 APScheduler n'est pas utilisé : aucune tâche planifiée n'est justifiée.
 
 ## Procédures de validation
-1. `python -m pytest` → 139 tests (cœur, sécurité, import hostile, chaque analyseur, corrélation, recherche, rapports, connecteurs simulés, API, sauvegarde, CLI, GUI hors écran, non-régression).
+1. `python -m pytest` → 142 tests (cœur, sécurité, import hostile, chaque analyseur, corrélation, recherche, rapports, connecteurs simulés, API, sauvegarde, CLI, GUI hors écran, non-régression).
 2. `python -m pytest --cov=lunatic_forensics --cov-report=html` → rapport de couverture (≈ 91 %, GUI exclue).
 3. `python scripts/generate_sample_report.py` → régénère `examples/sample_report.pdf|html`.
 4. Avant usage en laboratoire : valider chaque parseur sur des jeux de référence du laboratoire (appareils de test, versions d'OS/apps), consigner les versions dans le registre des outils, calculer l'empreinte de l'exécutable, tester ADB/iOS sur appareils de test.

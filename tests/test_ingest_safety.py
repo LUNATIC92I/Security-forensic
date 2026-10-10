@@ -142,3 +142,27 @@ def test_missing_and_symlink_sources(tmp_path, limits):
     except OSError:
         pytest.skip("symlinks not supported")
     assert not precheck(link, limits).accepted
+
+
+def test_encrypted_android_backup_with_password(tmp_path, limits):
+    from lunatic_forensics.ingest.plugins.android_backup import AndroidBackupPlugin, read_header
+    p = S.android_backup(tmp_path / "enc.ab", encrypted=True)
+    assert read_header(p).rounds == 10000
+    assert not precheck(p, limits, "Wrong-password").accepted
+    rep = precheck(p, limits, S.SYNTH_BACKUP_PASSWORD)
+    assert rep.accepted and any("verified" in w for w in rep.warnings)
+    res = AndroidBackupPlugin().extract(p, tmp_path / "out", limits, password=S.SYNTH_BACKUP_PASSWORD)
+    assert (tmp_path / "out/apps/com.android.providers.telephony/db/mmssms.db").exists()
+    assert res.device_info["backup_encrypted"] is True
+    with pytest.raises(ImportRejected):
+        AndroidBackupPlugin().extract(p, tmp_path / "out2", limits)
+
+
+def test_android_backup_hostile_header(tmp_path, limits):
+    p = tmp_path / "h.ab"
+    p.write_bytes(b"ANDROID BACKUP\n5\n1\nAES-256\nZZ\n00\n999999999\n00\n00\n")
+    assert not precheck(p, limits, "x").accepted
+    p.write_bytes(b"ANDROID BACKUP\n5\n1\nAES-256\n" + b"00" * 64 + b"\n" + b"00" * 64 + b"\n10\n" + b"00" * 16 +
+                  b"\n" + b"00" * 96 + b"\n" + b"garbage")
+    rep = precheck(p, limits, "x")
+    assert not rep.accepted and "Wrong backup password" in rep.blocking[0]

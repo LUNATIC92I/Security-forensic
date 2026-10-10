@@ -156,8 +156,40 @@ def adb_packages(path: Path) -> Path:
     return Path(path)
 
 
-def android_backup(path: Path, compressed: bool = True, encrypted: bool = False) -> Path:
-    """Build an adb backup (.ab) containing telephony and contacts databases."""
+SYNTH_BACKUP_PASSWORD = "Synthetic!Backup-2026"
+
+
+def _ab_encrypt(payload: bytes, password: str, version: int = 5, rounds: int = 10000) -> bytes:
+    """Encrypt an adb backup payload following the AOSP format (see ingest/plugins/android_backup.py)."""
+    import hashlib
+    import os as _os
+
+    from cryptography.hazmat.primitives import padding
+    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+
+    from .ingest.plugins.android_backup import mangle_key
+
+    def enc(key, iv, data):
+        p = padding.PKCS7(128).padder()
+        e = Cipher(algorithms.AES(key), modes.CBC(iv)).encryptor()
+        return e.update(p.update(data) + p.finalize()) + e.finalize()
+
+    user_salt, ck_salt, user_iv = _os.urandom(64), _os.urandom(64), _os.urandom(16)
+    master_key, master_iv = _os.urandom(32), _os.urandom(16)
+    master_key = b"\x80\xff" + master_key[2:]  # exercise the Java signed-byte checksum mangling
+    user_key = hashlib.pbkdf2_hmac("sha1", password.encode(), user_salt, rounds, 32)
+    checksum = hashlib.pbkdf2_hmac("sha1", mangle_key(master_key, version), ck_salt, rounds, 32)
+    blob = bytes([16]) + master_iv + bytes([32]) + master_key + bytes([32]) + checksum
+    hdr = (f"{user_salt.hex().upper()}\n{ck_salt.hex().upper()}\n{rounds}\n{user_iv.hex().upper()}\n"
+           f"{enc(user_key, user_iv, blob).hex().upper()}\n").encode()
+    return hdr + enc(master_key, master_iv, payload)
+
+
+def android_backup(path: Path, compressed: bool = True, encrypted: bool = False,
+                   password: str = SYNTH_BACKUP_PASSWORD) -> Path:
+    """Build an adb backup (.ab) containing telephony and contacts databases.
+
+    With ``encrypted=True`` the payload is genuinely AES-256 encrypted with ``password``."""
     tmp = Path(path).with_suffix(".tmpdir")
     tmp.mkdir(parents=True, exist_ok=True)
     sms = android_mmssms(tmp / "mmssms.db")
@@ -170,9 +202,9 @@ def android_backup(path: Path, compressed: bool = True, encrypted: bool = False)
         payload = b"6\ncom.android.providers.contacts\n"
         info.size = len(payload)
         tf.addfile(info, io.BytesIO(payload))
-    data = buf.getvalue()
+    data = zlib.compress(buf.getvalue()) if compressed else buf.getvalue()
     header = f"ANDROID BACKUP\n5\n{1 if compressed else 0}\n{'AES-256' if encrypted else 'none'}\n".encode()
-    Path(path).write_bytes(header + (zlib.compress(data) if compressed else data))
+    Path(path).write_bytes(header + (_ab_encrypt(data, password) if encrypted else data))
     for p in tmp.iterdir():
         p.unlink()
     tmp.rmdir()
