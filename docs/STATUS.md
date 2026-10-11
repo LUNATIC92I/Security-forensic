@@ -62,7 +62,7 @@ Linux (GUI) : `libegl1 libgl1 libxkbcommon0 libfontconfig1`.
 APScheduler n'est pas utilisé : aucune tâche planifiée n'est justifiée.
 
 ## Procédures de validation
-1. `python -m pytest` → 142 tests (cœur, sécurité, import hostile, chaque analyseur, corrélation, recherche, rapports, connecteurs simulés, API, sauvegarde, CLI, GUI hors écran, non-régression).
+1. `python -m pytest` → 144 tests (cœur, sécurité, import hostile, chaque analyseur, corrélation, recherche, rapports, connecteurs simulés, API, sauvegarde, CLI, GUI hors écran, non-régression).
 2. `python -m pytest --cov=lunatic_forensics --cov-report=html` → rapport de couverture (≈ 91 %, GUI exclue).
 3. `python scripts/generate_sample_report.py` → régénère `examples/sample_report.pdf|html`.
 4. Avant usage en laboratoire : valider chaque parseur sur des jeux de référence du laboratoire (appareils de test, versions d'OS/apps), consigner les versions dans le registre des outils, calculer l'empreinte de l'exécutable, tester ADB/iOS sur appareils de test.

@@ -72,6 +72,6 @@ Run `python -m lunatic_forensics` then see `AnalysisService.analyzers_catalog()`
 
 ## Testing
 
-`python -m pytest` (142 tests, ~40 s) - `python -m pytest --cov` for coverage (≈91 % excluding GUI).
+`python -m pytest` (144 tests, ~40 s) - `python -m pytest --cov` for coverage (≈91 % excluding GUI).
 GUI tests run offscreen (`QT_QPA_PLATFORM=offscreen`) and are skipped automatically if Qt cannot load.
 `tests/test_end_to_end.py` is the non-regression snapshot of parser outputs on the synthetic scenario.

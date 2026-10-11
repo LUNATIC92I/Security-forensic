@@ -7,7 +7,7 @@ Plateforme de **criminalistique numérique mobile** en Python, locale par défau
 > verrouillage, aucune exploitation, aucune extraction clandestine ni neutralisation de protections.
 > Il ne présente jamais une collecte logique comme une extraction physique.
 
-![tests](https://img.shields.io/badge/tests-142%20passed-2f8cff) ![coverage](https://img.shields.io/badge/coverage-91%25-2f8cff)
+![tests](https://img.shields.io/badge/tests-144%20passed-2f8cff) ![coverage](https://img.shields.io/badge/coverage-91%25-2f8cff)
 
 ## Fonctionnalités principales
 - **Investigations** : identifiants uniques, statuts, responsable, enquêteurs autorisés, autorité légale, périmètre, historique.
@@ -25,7 +25,17 @@ Plateforme de **criminalistique numérique mobile** en Python, locale par défau
 - **Acquisition autorisée** : ADB (sans root) et libimobiledevice (appairage, service de sauvegarde officiel).
 - **Interface PySide6** sombre (noir, graphite, argent, bleu électrique), CLI complète, API locale optionnelle.
 
-## Installation
+## Téléchargement Windows (un clic)
+**[⬇ LunaticMobileForensics.exe](https://github.com/LUNATIC92I/Security-forensic/releases/download/v0.1.0/LunaticMobileForensics.exe)**
+(Windows 10/11 64 bits, aucune installation, ~70 Mo) — empreinte dans
+[SHA256SUMS.txt](https://github.com/LUNATIC92I/Security-forensic/releases/download/v0.1.0/SHA256SUMS.txt),
+page de la version : [v0.1.0](https://github.com/LUNATIC92I/Security-forensic/releases/tag/v0.1.0).
+Double-cliquez : au premier lancement, créez le compte administrateur. L'exécutable n'est pas signé :
+SmartScreen peut afficher « Windows a protégé votre ordinateur » → *Informations complémentaires* → *Exécuter quand même*.
+Auto-test : `LunaticMobileForensics.exe self-test --output resultat.txt`. L'exe est reconstruit, testé sous Windows
+et republié automatiquement par GitHub Actions (`.github/workflows/build-windows.yml`).
+
+## Installation depuis les sources
 ```bash
 # Linux / macOS
 ./scripts/install.sh
@@ -52,7 +62,7 @@ python -m lunatic_forensics --home ./lab --user admin report 1 --format pdf
 
 ## Tests
 ```bash
-python -m pytest                                   # 142 tests, aucune donnée réelle
+python -m pytest                                   # 144 tests, aucune donnée réelle
 python -m pytest --cov=lunatic_forensics --cov-report=html
 ```
 
