@@ -1,7 +1,10 @@
-# Build a standalone Windows executable with PyInstaller (run on Windows).
+# Build the one-file Windows executable locally (run on Windows), then self-test it.
 $ErrorActionPreference = "Stop"
 Set-Location (Join-Path $PSScriptRoot "..")
-& .\.venv\Scripts\python.exe -m pip install ".[build]"
-& .\.venv\Scripts\python.exe -m PyInstaller --noconfirm packaging\lunatic_forensics.spec
-Write-Host "Executable folder: dist\LunaticMobileForensics\  (start LunaticMobileForensics.exe)"
-Write-Host "Optional: sign the executable (signtool) and compute its SHA-256 for the lab tool register."
+py -3 -m pip install ".[build]"
+py -3 -m PyInstaller --noconfirm packaging\lunatic_forensics.spec
+$p = Start-Process -FilePath "dist\LunaticMobileForensics.exe" -ArgumentList "self-test","--output","selftest.txt" -Wait -PassThru
+Get-Content selftest.txt
+if ($p.ExitCode -ne 0) { throw "Self-test failed" }
+Get-FileHash dist\LunaticMobileForensics.exe -Algorithm SHA256
+Write-Host "Ready: dist\LunaticMobileForensics.exe (double-click to start)"

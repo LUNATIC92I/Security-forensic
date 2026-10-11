@@ -13,3 +13,4 @@ venv/
 # runtime data must never be committed
 .lunatic_forensics/
 lunatic_home/
+build/

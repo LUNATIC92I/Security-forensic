@@ -1,0 +1,71 @@
+name: build-windows-exe
+on:
+  push:
+    branches: [main, master, "ccr-*"]
+    paths-ignore: ["docs/**", "*.md"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tests-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: python -m pip install -e ".[api,dev]"
+      - run: python -m pytest -p no:warnings
+        env: {QT_QPA_PLATFORM: offscreen, PYTHONUTF8: "1"}
+
+  build-exe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - name: Install
+        run: python -m pip install ".[build]"
+      - name: Build one-file executable
+        run: python -m PyInstaller --noconfirm packaging/lunatic_forensics.spec
+      - name: Self-test the built executable (synthetic data only)
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "dist\LunaticMobileForensics.exe" -ArgumentList "self-test","--output","selftest.txt" -Wait -PassThru
+          Get-Content selftest.txt
+          if ($p.ExitCode -ne 0) { throw "self-test failed with exit code $($p.ExitCode)" }
+          if (-not (Select-String -Path selftest.txt -Pattern "SELF-TEST PASSED" -Quiet)) { throw "self-test did not pass" }
+      - name: Checksums
+        shell: pwsh
+        run: |
+          $h = (Get-FileHash dist\LunaticMobileForensics.exe -Algorithm SHA256).Hash.ToLower()
+          "$h  LunaticMobileForensics.exe" | Out-File -Encoding ascii dist\SHA256SUMS.txt
+          Get-Content dist\SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LunaticMobileForensics-windows
+          path: |
+            dist/LunaticMobileForensics.exe
+            dist/SHA256SUMS.txt
+            selftest.txt
+      - name: Publish release (one-click download)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.0
+          name: LUNATIC MOBILE FORENSICS 0.1.0 - Windows
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          files: |
+            dist/LunaticMobileForensics.exe
+            dist/SHA256SUMS.txt
+          body: |
+            Executable Windows autonome (64 bits) - double-cliquez sur **LunaticMobileForensics.exe**.
+            Aucune installation de Python n'est nécessaire. Au premier lancement, créez le compte administrateur.
+
+            * Données stockées dans `%USERPROFILE%\.lunatic_forensics` (définissez `LUNATIC_MASTER_PASSPHRASE` pour envelopper la clé de chiffrement, et activez BitLocker).
+            * Exécutable non signé : Windows SmartScreen peut afficher « Windows a protégé votre ordinateur » -> *Informations complémentaires* -> *Exécuter quand même*. Vérifiez l'empreinte SHA-256 (SHA256SUMS.txt).
+            * Auto-test intégré : `LunaticMobileForensics.exe self-test --output resultat.txt`.
+            * Usage réservé aux investigations légalement autorisées.
+
+            Build automatique du commit ${{ github.sha }} ; auto-test passé sur Windows avant publication.

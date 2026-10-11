@@ -202,6 +202,47 @@ def cmd_restore(args):
     print(f"Restored {len(files)} files into {args.target}. Start with LUNATIC_HOME={args.target}")
 
 
+def cmd_self_test(args):
+    """End-to-end check of an installation or frozen executable on synthetic data only."""
+    import tempfile
+    import traceback
+    from .synthetic import build_demo_dataset
+    from .services.context import AppContext
+    report = Path(args.output) if args.output else None
+    lines, ok = [], True
+    try:
+        with tempfile.TemporaryDirectory(prefix="lunatic_selftest_") as tmp:
+            tmp = Path(tmp)
+            ctx = AppContext(AppConfig(home=tmp / "home"), passphrase="Self-test passphrase 1!")
+            ctx.auth.bootstrap_admin("selftest", "Self!Test-Passw0rd")
+            a = ctx.auth.authenticate("selftest", "Self!Test-Passw0rd")
+            cid = ctx.cases.create(a, "Self-test", timezone="Europe/Paris")
+            total = 0
+            for key, path in build_demo_dataset(tmp / "ds").items():
+                ev = ctx.evidence.import_evidence(a, cid, path)
+                job = ctx.analysis.job(a, ctx.analysis.run(a, ev, correlate=False))
+                total += job.artifact_count
+                lines.append(f"{key}: {job.status}, {job.artifact_count} artefacts")
+                ok &= job.status == "completed"
+            lines.append(f"correlations: {ctx.correlation.rebuild(a, cid)}")
+            pdf = ctx.reports.generate(a, cid, "pdf")
+            ok &= pdf.read_bytes()[:5] == b"%PDF-"
+            ok &= all(c.ok for c in ctx.evidence.verify_case(a, cid))
+            ok &= ctx.audit.verify_chain()[0]
+            ok &= total > 100
+            lines.append(f"artefacts: {total}, report: {pdf.stat().st_size} bytes, integrity and audit chain checked")
+            ctx.close()
+    except Exception:  # noqa: BLE001 - reported
+        ok = False
+        lines.append(traceback.format_exc())
+    lines.append("SELF-TEST " + ("PASSED" if ok else "FAILED"))
+    text = "\n".join(lines)
+    print(text)
+    if report:
+        report.write_text(text, encoding="utf-8")
+    return 0 if ok else 1
+
+
 def cmd_api(args):
     from .api.server import run
     run(_ctx(args), host=args.host, port=args.port)
@@ -319,6 +360,10 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--host", default="127.0.0.1")
     s.add_argument("--port", type=int, default=8765)
     s.set_defaults(fn=cmd_api)
+
+    s = sub.add_parser("self-test", help="end-to-end check on synthetic data (no real data, nothing kept)")
+    s.add_argument("--output", help="also write the result to this file")
+    s.set_defaults(fn=cmd_self_test)
 
     s = sub.add_parser("gui", help="start the desktop application")
     s.set_defaults(fn=cmd_gui)
