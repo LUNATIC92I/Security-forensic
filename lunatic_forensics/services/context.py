@@ -62,4 +62,11 @@ class AppContext:
         self.audit.log("app.start", details={"schema_version": self.schema_version})
 
     def close(self) -> None:
+        """Release the database and the log file (Windows locks open files)."""
         self.db.dispose()
+        root = logging.getLogger("lunatic")
+        target = str((self.config.logs_dir / "lunatic.log").resolve())
+        for h in list(root.handlers):
+            if getattr(h, "_lunatic", False) and h.baseFilename == target:
+                root.removeHandler(h)
+                h.close()

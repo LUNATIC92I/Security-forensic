@@ -206,32 +206,19 @@ def cmd_self_test(args):
     """End-to-end check of an installation or frozen executable on synthetic data only."""
     import tempfile
     import traceback
-    from .synthetic import build_demo_dataset
     from .services.context import AppContext
     report = Path(args.output) if args.output else None
     lines, ok = [], True
     try:
-        with tempfile.TemporaryDirectory(prefix="lunatic_selftest_") as tmp:
-            tmp = Path(tmp)
+        with tempfile.TemporaryDirectory(prefix="lunatic_selftest_", ignore_cleanup_errors=True) as tmp:
+            tmp = Path(tmp)  # deliberately unresolved (exercises Windows 8.3 short paths)
             ctx = AppContext(AppConfig(home=tmp / "home"), passphrase="Self-test passphrase 1!")
-            ctx.auth.bootstrap_admin("selftest", "Self!Test-Passw0rd")
-            a = ctx.auth.authenticate("selftest", "Self!Test-Passw0rd")
-            cid = ctx.cases.create(a, "Self-test", timezone="Europe/Paris")
-            total = 0
-            for key, path in build_demo_dataset(tmp / "ds").items():
-                ev = ctx.evidence.import_evidence(a, cid, path)
-                job = ctx.analysis.job(a, ctx.analysis.run(a, ev, correlate=False))
-                total += job.artifact_count
-                lines.append(f"{key}: {job.status}, {job.artifact_count} artefacts")
-                ok &= job.status == "completed"
-            lines.append(f"correlations: {ctx.correlation.rebuild(a, cid)}")
-            pdf = ctx.reports.generate(a, cid, "pdf")
-            ok &= pdf.read_bytes()[:5] == b"%PDF-"
-            ok &= all(c.ok for c in ctx.evidence.verify_case(a, cid))
-            ok &= ctx.audit.verify_chain()[0]
-            ok &= total > 100
-            lines.append(f"artefacts: {total}, report: {pdf.stat().st_size} bytes, integrity and audit chain checked")
-            ctx.close()
+            try:
+                ok = _run_self_test(ctx, tmp, lines)
+            finally:
+                ctx.close()
+                from .services.evidence_service import force_rmtree
+                force_rmtree(tmp / "home")  # vault files are read-only by design
     except Exception:  # noqa: BLE001 - reported
         ok = False
         lines.append(traceback.format_exc())
@@ -241,6 +228,29 @@ def cmd_self_test(args):
     if report:
         report.write_text(text, encoding="utf-8")
     return 0 if ok else 1
+
+
+def _run_self_test(ctx, tmp: Path, lines: list[str]) -> bool:
+    from .synthetic import build_demo_dataset
+    ok = True
+    ctx.auth.bootstrap_admin("selftest", "Self!Test-Passw0rd")
+    a = ctx.auth.authenticate("selftest", "Self!Test-Passw0rd")
+    cid = ctx.cases.create(a, "Self-test", timezone="Europe/Paris")
+    total = 0
+    for key, path in build_demo_dataset(tmp / "ds").items():
+        ev = ctx.evidence.import_evidence(a, cid, path)
+        job = ctx.analysis.job(a, ctx.analysis.run(a, ev, correlate=False))
+        total += job.artifact_count
+        lines.append(f"{key}: {job.status}, {job.artifact_count} artefacts")
+        ok &= job.status == "completed"
+    lines.append(f"correlations: {ctx.correlation.rebuild(a, cid)}")
+    pdf = ctx.reports.generate(a, cid, "pdf")
+    ok &= pdf.read_bytes()[:5] == b"%PDF-"
+    ok &= all(c.ok for c in ctx.evidence.verify_case(a, cid))
+    ok &= ctx.audit.verify_chain()[0]
+    ok &= total > 100
+    lines.append(f"artefacts: {total}, report: {pdf.stat().st_size} bytes, integrity and audit chain checked")
+    return ok
 
 
 def cmd_api(args):

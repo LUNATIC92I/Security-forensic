@@ -158,3 +158,11 @@ def test_attributed_body_and_protobuf_helpers():
     assert decode_attributed_body(b"no marker") is None
     assert decode_attributed_body(S._typedstream("x" * 200)) == "x" * 200   # 0x81 length prefix
     assert decode_notestore_text(b"not gzip") is None
+
+
+def test_vcard_tolerates_doubled_carriage_returns(tmp_path, fc):
+    """Regression: CR CR LF line endings (text-mode rewrite on Windows) must not hide contacts."""
+    p = tmp_path / "c.vcf"
+    p.write_bytes(b"BEGIN:VCARD\r\r\nVERSION:3.0\r\r\nFN:Claire Petit\r\r\nTEL:+33639980002\r\r\nEND:VCARD\r\r\n")
+    recs = list(generic.VCardAnalyzer().parse(fc(p)))
+    assert len(recs) == 1 and recs[0].names == ["Claire Petit"] and recs[0].identifiers == ["+33639980002"]

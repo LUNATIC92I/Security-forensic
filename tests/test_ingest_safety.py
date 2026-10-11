@@ -166,3 +166,22 @@ def test_android_backup_hostile_header(tmp_path, limits):
                   b"\n" + b"00" * 96 + b"\n" + b"garbage")
     rep = precheck(p, limits, "x")
     assert not rep.accepted and "Wrong backup password" in rep.blocking[0]
+
+
+def test_extraction_when_destination_path_is_not_canonical(tmp_path, limits):
+    """Regression (Windows 8.3 short names): the extraction root given in a
+    non-canonical form (here through a symlink) must still work."""
+    real = tmp_path / "real_dest"
+    real.mkdir()
+    alias = tmp_path / "alias"
+    try:
+        alias.symlink_to(real, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlinks not supported")
+    z = tmp_path / "ok.zip"
+    with zipfile.ZipFile(z, "w") as zf:
+        zf.writestr("adb/getprop.txt", "[a]: [b]\n")
+    stats = safe_extract_zip(z, alias / "work", limits)
+    assert stats.files == ["adb/getprop.txt"]
+    t = S.tar_with_symlink(tmp_path / "s.tar")
+    assert safe_extract_tar(t, alias / "work2", limits).files == ["regular.txt"]

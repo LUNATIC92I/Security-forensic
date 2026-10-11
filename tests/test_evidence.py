@@ -73,6 +73,7 @@ def test_missing_original_is_alert(ctx, users, case_id, tmp_path):
     ev = ctx.evidence.get(users["inv"], ev_id)
     p = Path(ev.stored_path)
     os.chmod(p.parent, 0o700)
+    os.chmod(p, 0o600)  # Windows: read-only attribute must be cleared before deletion
     p.unlink()
     assert ctx.evidence.verify(users["inv"], ev_id).observed == "MISSING"
 

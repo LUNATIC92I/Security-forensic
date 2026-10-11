@@ -532,7 +532,7 @@ def vcard(path: Path) -> Path:
     Path(path).write_text("BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Claire Petit\r\nN:Petit;Claire;;;\r\n"
                           f"TEL;TYPE=CELL:{CLAIRE[1]}\r\nEMAIL:{CLAIRE[2]}\r\nORG:Synthetic Org\r\nEND:VCARD\r\n"
                           "BEGIN:VCARD\r\nVERSION:2.1\r\nN;ENCODING=QUOTED-PRINTABLE;CHARSET=UTF-8:Lef=C3=A8vre;Dan\r\n"
-                          f"TEL;CELL:{DAN[1]}\r\nEND:VCARD\r\n", encoding="utf-8")
+                          f"TEL;CELL:{DAN[1]}\r\nEND:VCARD\r\n", encoding="utf-8", newline="")
     return Path(path)
 
 
@@ -541,7 +541,7 @@ def icalendar(path: Path) -> Path:
                           "DTSTART;TZID=Europe/Paris:20260316T090000\r\nDTEND;TZID=Europe/Paris:20260316T100000\r\n"
                           "SUMMARY:Reunion projet\r\nLOCATION:Salle 2\r\nDESCRIPTION:Ordre du jour\\, budget\r\nEND:VEVENT\r\n"
                           "BEGIN:VTODO\r\nUID:todo-1@example.org\r\nDUE:20260317T120000Z\r\nSUMMARY:Rendre le dossier\r\n"
-                          "END:VTODO\r\nEND:VCALENDAR\r\n", encoding="utf-8")
+                          "END:VTODO\r\nEND:VCALENDAR\r\n", encoding="utf-8", newline="")
     return Path(path)
 
 

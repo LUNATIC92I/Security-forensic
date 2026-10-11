@@ -155,8 +155,10 @@ def sanitize_member_path(name: str, limits: ImportLimits) -> PurePosixPath:
 
 
 def _safe_target(dest: Path, rel: PurePosixPath) -> Path:
+    """``dest`` must already be resolved (see callers) so that Windows 8.3 short
+    names and long names compare equal."""
     target = (dest / Path(*rel.parts)).resolve()
-    if os.path.commonpath([str(dest.resolve()), str(target)]) != str(dest.resolve()):
+    if os.path.commonpath([str(dest), str(target)]) != str(dest):
         raise ImportRejected(f"Archive member escapes extraction directory: {rel}")
     return target
 
@@ -237,6 +239,7 @@ def safe_extract_zip(src: Path, dest: Path, limits: ImportLimits) -> ExtractStat
         raise ImportRejected("ZIP archive rejected by safety checks.", blocking)
     stats = ExtractStats(warnings=list(warnings))
     dest.mkdir(parents=True, exist_ok=True)
+    dest = dest.resolve()
     with zipfile.ZipFile(src) as zf:
         for info in zf.infolist():
             if info.is_dir():
@@ -266,6 +269,7 @@ def safe_extract_tar_stream(tf: tarfile.TarFile, dest: Path, limits: ImportLimit
     """Extract an opened tar (can be in streaming mode) safely."""
     stats = ExtractStats()
     dest.mkdir(parents=True, exist_ok=True)
+    dest = dest.resolve()
     count = 0
     for member in tf:
         count += 1

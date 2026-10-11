@@ -16,8 +16,11 @@ from .xmlsafe import iterparse, local
 
 # ------------------------------------------------------------------ vCard
 def _unfold(text: str) -> list[str]:
+    """Unfold RFC 6350/5545 content lines; tolerant of CRLF, LF, CR and doubled CRs (CR CR LF)."""
     lines = []
-    for line in text.replace("\r\n", "\n").split("\n"):
+    for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        if not line:
+            continue
         if line[:1] in (" ", "\t") and lines:
             lines[-1] += line[1:]
         else:
