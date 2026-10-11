@@ -60,7 +60,9 @@ def test_tamper_detection_blocks_analysis(ctx, users, case_id, tmp_path):
 def test_working_copy_change_reported(ctx, users, case_id, tmp_path):
     ev_id = ctx.evidence.import_evidence(users["inv"], case_id, S.vcard(tmp_path / "c.vcf"))
     ev = ctx.evidence.get(users["inv"], ev_id)
-    Path(ev.working_path, "c.vcf").write_text("modified")
+    wc = Path(ev.working_path, "c.vcf")
+    os.chmod(wc, 0o600)  # working copies inherit the read-only mode: tampering requires lifting it
+    wc.write_text("modified")
     check = ctx.evidence.verify(users["inv"], ev_id)
     assert check.ok  # original untouched
     assert any("working copy differs" in d for d in check.details)
